@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>법인택시 입금관리</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nanum Gothic', 'Noto Sans KR', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        /* Custom scrollbar for mobile feel */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        .header-bg {
+            background-color: #0d4b75;
+        }
+        .red-card {
+            background-color: #c92a2a;
+        }
+        .blue-card {
+            background-color: #0b5394;
+        }
+        .badge-sub {
+            letter-spacing: -0.3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex justify-center min-h-screen text-slate-800">
+
+    <!-- Mobile Screen Wrapper -->
+    <div class="w-full max-w-md bg-white flex flex-col min-h-screen shadow-2xl relative overflow-x-hidden pb-10">
+
+        <!-- Top Navigation Bar -->
+        <header class="header-bg text-white h-14 flex items-center justify-between px-4 sticky top-0 z-20 shadow-md">
+            <button onclick="openSidebar()" class="p-2 text-xl hover:opacity-80 active:scale-95 transition-transform" aria-label="메뉴 열기">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div id="headerTitle" class="text-xl font-bold tracking-tight">
+                2026년 10월
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openModal('entryModal')" class="p-2 text-lg hover:opacity-80 active:scale-95" title="자료입력">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                </button>
+                <button onclick="showToast('화면 캡처/저장 준비 완료')" class="p-2 text-xl hover:opacity-80 active:scale-95" aria-label="카메라/화면">
+                    <i class="fa-solid fa-camera"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area: Tab Views -->
+        <main class="flex-1 flex flex-col">
+
+            <!-- TAB 1: 대시보드 (메인 홈) -->
+            <section id="viewDashboard" class="flex-1 px-3.5 py-3 space-y-3">
+                <!-- 상단 요약 카드 (월 기준 & 근무일수 기준) - 높이 축소형 -->
+                <div class="grid grid-cols-2 gap-2.5">
+                    
+                    <!-- 빨간색 카드: 월 기준 -->
+                    <div class="flex flex-col">
+                        <span class="text-[12px] font-bold text-sky-700 mb-1 ml-0.5">월 기준</span>
+                        <div class="red-card rounded-lg p-2.5 text-white shadow-sm flex flex-col justify-between">
+                            <div class="text-center border-b border-red-400/40 pb-1.5 mb-2">
+                                <div class="text-[12px] font-medium text-red-100">미수금</div>
+                                <div id="cardMonthlyUnpaid" class="text-[17px] font-extrabold leading-tight">2,521,800원</div>
+                            </div>
+                            <div class="space-y-1 text-[11px] leading-tight">
+                                <div class="flex justify-between items-center text-red-100">
+                                    <span>월 사납금</span>
+                                    <span id="cardTargetDeposit" class="font-bold text-white">5,512,000원</span>
+                                </div>
+                                <div class="flex justify-between items-center text-red-100">
+                                    <span>입금한 금액</span>
+                                    <span id="cardActualDeposit" class="font-bold text-white">2,990,200원</span>
+                                </div>
+                                <div class="flex justify-between items-center text-red-100">
+                                    <span>근무</span>
+                                    <span id="cardTotalWorkDays" class="font-bold text-white">26일</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 파란색 카드: 근무일수 기준 -->
+                    <div class="flex flex-col">
+                        <span class="text-[12px] font-bold text-sky-700 mb-1 ml-0.5">근무일수 기준</span>
+                        <div class="blue-card rounded-lg p-2.5 text-white shadow-sm flex flex-col justify-between">
+                            <div class="text-center border-b border-blue-400/40 pb-1.5 mb-2">
+                                <div class="text-[12px] font-medium text-blue-100">추가입금</div>
+                                <div id="cardExtraDeposit" class="text-[17px] font-extrabold leading-tight">446,200원</div>
+                            </div>
+                            <div class="space-y-1 text-[11px] leading-tight">
+                                <div class="flex justify-between items-center text-blue-100">
+                                    <span>현금입금</span>
+                                    <span id="cardCashDeposit" class="font-bold text-white">0원</span>
+                                </div>
+                                <div class="flex justify-between items-center text-blue-100">
+                                    <span>카드입금</span>
+                                    <span id="cardCardDeposit" class="font-bold text-white">2,990,200원</span>
+                                </div>
+                                <div class="flex justify-between items-center text-blue-100">
+                                    <span>정상근무</span>
+                                    <span id="cardNormalWorkDays" class="font-bold text-white">12일</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 영업금액 요약 라인 -->
+                <div class="flex items-center justify-between py-1 px-1 border-b border-slate-200">
+                    <div class="flex items-center space-x-1.5 text-rose-500 font-bold text-[14px]">
+                        <i class="fa-solid fa-suitcase"></i>
+                        <span>영업금액</span>
+                    </div>
+                    <div id="cardTotalSales" class="text-rose-500 font-extrabold text-[16px]">
+                        0원
+                    </div>
+                </div>
+
+                <!-- 근무현황 섹션 -->
+                <div class="pt-1">
+                    <div class="flex items-center space-x-1.5 text-[#0d4b75] font-bold text-[14px] mb-1.5">
+                        <i class="fa-solid fa-taxi"></i>
+                        <span>근무현황</span>
+                    </div>
+                    <div class="bg-white border border-slate-300 rounded-lg p-3 shadow-xs flex justify-around items-center">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[13px] text-slate-700 font-bold">정상근무</span>
+                            <span id="statusNormalCount" class="text-[15px] font-extrabold text-slate-900">12일</span>
+                        </div>
+                        <div class="h-4 w-px bg-slate-200"></div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[13px] text-slate-700 font-bold">일차</span>
+                            <span id="statusIlchaCount" class="text-[15px] font-extrabold text-slate-900">12일</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 빠른 액션 안내 카드 -->
+                <div class="bg-slate-50 border border-dashed border-slate-300 rounded-lg p-3 text-center mt-3">
+                    <p class="text-xs text-slate-500 font-medium">매일의 운행 수입과 근무형태를 기록하세요.</p>
+                    <div class="flex justify-center space-x-2 mt-2.5">
+                        <button onclick="openModal('entryModal')" class="bg-[#0d4b75] text-white text-xs px-3.5 py-1.5 rounded-md font-bold shadow-sm active:scale-95 transition-transform flex items-center space-x-1">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                            <span>오늘 자료 입력</span>
+                        </button>
+                        <button onclick="switchTab('calendar')" class="bg-sky-600 text-white text-xs px-3.5 py-1.5 rounded-md font-bold shadow-sm active:scale-95 transition-transform flex items-center space-x-1">
+                            <i class="fa-regular fa-calendar-days text-[10px]"></i>
+                            <span>영업달력 보기</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 최근 입력 내역 프리뷰 -->
+                <div class="pt-2">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
+                        <span>최근 입력 기록</span>
+                        <button onclick="switchTab('query')" class="text-sky-700 hover:underline">전체보기 &gt;</button>
+                    </div>
+                    <div id="recentRecordsList" class="space-y-1.5 text-xs">
+                        <!-- JS로 렌더링 -->
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- TAB 2: 자료조회 (내역 리스트) -->
+            <section id="viewQuery" class="hidden flex-1 px-3.5 py-3 space-y-3">
+                <div class="flex items-center justify-between border-b pb-2 border-slate-200">
+                    <h2 class="text-base font-bold text-[#0d4b75] flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>입금 및 근무 자료조회</span>
+                    </h2>
+                    <span id="queryCountBadge" class="text-xs bg-sky-100 text-[#0d4b75] font-bold px-2 py-0.5 rounded-full">총 12건</span>
+                </div>
+                <div id="recordsListFull" class="space-y-2">
+                    <!-- 리스트 렌더링 영역 -->
+                </div>
+            </section>
+
+            <!-- TAB 3: 통계차트 -->
+            <section id="viewChart" class="hidden flex-1 px-3.5 py-3 space-y-4">
+                <div class="border-b pb-2 border-slate-200">
+                    <h2 class="text-base font-bold text-[#0d4b75] flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-column"></i>
+                        <span>월간 입금 및 사납금 분석</span>
+                    </h2>
+                </div>
+
+                <!-- 통계 수치 카드 -->
+                <div class="grid grid-cols-2 gap-2 text-center text-xs">
+                    <div class="bg-red-50 border border-red-200 p-2.5 rounded-lg">
+                        <span class="text-slate-600 font-medium">총 미수금</span>
+                        <div id="statUnpaid" class="text-red-600 font-extrabold text-sm mt-0.5">2,521,800원</div>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-lg">
+                        <span class="text-slate-600 font-medium">총 카드입금</span>
+                        <div id="statCard" class="text-blue-700 font-extrabold text-sm mt-0.5">2,990,200원</div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-2.5 rounded-lg">
+                        <span class="text-slate-600 font-medium">총 사납금 기준</span>
+                        <div id="statTarget" class="text-slate-800 font-extrabold text-sm mt-0.5">5,512,000원</div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg">
+                        <span class="text-slate-600 font-medium">초과 입금액</span>
+                        <div id="statExtra" class="text-emerald-700 font-extrabold text-sm mt-0.5">446,200원</div>
+                    </div>
+                </div>
+
+                <!-- 입금 달성률 바 -->
+                <div class="bg-white border rounded-lg p-3 shadow-xs">
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span class="text-slate-700">사납금 달성률</span>
+                        <span id="statRateText" class="text-blue-700 font-bold">54.2%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                        <div id="statProgressBar" class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: 54.2%;"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2 text-right">사납금 달성까지 2,521,800원 남음</p>
+                </div>
+
+                <!-- 근무 형태 분포 -->
+                <div class="bg-white border rounded-lg p-3 shadow-xs">
+                    <h3 class="text-xs font-bold text-slate-800 mb-2">근무 구분 요약</h3>
+                    <div class="space-y-1.5 text-xs text-slate-600">
+                        <div class="flex justify-between items-center">
+                            <span>정근 (주간/야간/일차)</span>
+                            <span id="statNormalDays" class="font-bold text-slate-800">12일</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>휴일근무 / 대체근무</span>
+                            <span id="statSpecialDays" class="font-bold text-slate-800">0일</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>휴무 / 연차</span>
+                            <span id="statOffDays" class="font-bold text-slate-800">2일</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: 영업달력 -->
+            <section id="viewCalendar" class="hidden flex-1 flex flex-col px-2 py-2">
+                <!-- 달력 서브 헤더 -->
+                <div class="flex items-center justify-between px-2 py-1.5 text-sm font-bold text-slate-800 border-b border-slate-200">
+                    <div class="flex items-center space-x-1">
+                        <button onclick="changeCalMonth(-1)" class="p-1 hover:text-sky-700"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <span id="calYearMonth" class="text-base font-extrabold tracking-tight">2026. 10.</span>
+                        <button onclick="changeCalMonth(1)" class="p-1 hover:text-sky-700"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>
+                    <div class="flex items-center space-x-2 text-xs font-semibold">
+                        <div class="flex items-center space-x-1 bg-slate-100 px-2 py-1 rounded border">
+                            <span>근무방식</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-500"></i>
+                        </div>
+                        <div class="flex items-center space-x-1 bg-slate-100 px-2 py-1 rounded border">
+                            <span id="calShiftDays">12</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-500"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 요일 헤더 -->
+                <div class="grid grid-cols-7 text-center font-bold text-xs py-1.5 border-b border-slate-200">
+                    <div class="text-red-500">일</div>
+                    <div class="text-slate-700">월</div>
+                    <div class="text-slate-700">화</div>
+                    <div class="text-slate-700">수</div>
+                    <div class="text-slate-700">목</div>
+                    <div class="text-slate-700">금</div>
+                    <div class="text-blue-500">토</div>
+                </div>
+
+                <!-- 달력 날짜 그리드 -->
+                <div id="calendarGrid" class="grid grid-cols-7 flex-1 border-b border-r border-slate-200">
+                    <!-- JS로 날짜 셀 렌더링 -->
+                </div>
+            </section>
+
+            <!-- TAB 5: 입금 기본정보 설정 -->
+            <section id="viewSettings" class="hidden flex-1 px-3.5 py-3 space-y-4">
+                <div class="border-b pb-2 border-slate-200">
+                    <h2 class="text-base font-bold text-[#0d4b75] flex items-center gap-1.5">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <span>입금 기본정보 설정</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">월 기준 사납금 및 1일 기준 사납금을 설정합니다.</p>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">기준 년월</label>
+                        <input type="month" id="cfgMonth" value="2026-10" class="w-full border rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-600 bg-slate-50 font-medium">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">월 사납금 (원)</label>
+                        <input type="number" id="cfgTargetMonthly" value="5512000" class="w-full border rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-600 font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">1일 사납금 기준 (원)</label>
+                        <input type="number" id="cfgDailyRate" value="212000" class="w-full border rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-600 font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">월 만근 기준일수 (일)</label>
+                        <input type="number" id="cfgWorkDays" value="26" class="w-full border rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-600 font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">기본 근무형태</label>
+                        <select id="cfgDefaultShift" class="w-full border rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-600 font-medium bg-white">
+                            <option value="일차">일차</option>
+                            <option value="주간">주간</option>
+                            <option value="야간">야간</option>
+                            <option value="격일">격일</option>
+                            <option value="도급">도급</option>
+                        </select>
+                    </div>
+
+                    <button onclick="saveSettings()" class="w-full bg-[#0d4b75] hover:bg-[#0b3d5e] text-white py-2.5 rounded-lg font-bold text-sm shadow mt-2 active:scale-[0.99] transition-transform">
+                        설정 저장하기
+                    </button>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- 사이드 메뉴 (Drawer Sidebar) -->
+        <div id="sidebarOverlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/50 z-30 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+        <aside id="sidebar" class="fixed top-0 left-0 bottom-0 w-3/4 max-w-xs bg-white z-40 transform -translate-x-full transition-transform duration-300 ease-out flex flex-col shadow-2xl">
+            <!-- 유저 프로필 헤더 (일반회원 표기 제외) -->
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xl font-bold">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <!-- 일반회원 텍스트 삭제 및 깔끔한 기사명 표기 -->
+                        <div class="font-bold text-slate-800 text-sm">insu1959 기사님</div>
+                        <div class="text-[11px] text-slate-400">insu1959@naver.com</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 사이드 메뉴 목록 (구독서비스, 커뮤니티, 공지사항 삭제 완료) -->
+            <div class="flex-1 overflow-y-auto py-2">
+                <!-- Info Section -->
+                <div class="px-4 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Info</div>
+                <button onclick="navTo('settings')" class="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-slate-50 active:bg-slate-100 text-slate-700">
+                    <div class="flex items-center space-x-3 text-xs font-semibold">
+                        <i class="fa-regular fa-lightbulb text-base text-amber-500 w-5 text-center"></i>
+                        <span>입금 기본정보</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                </button>
+
+                <!-- Data Section -->
+                <div class="px-4 pt-3 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Data</div>
+                <button onclick="navTo('entryModal')" class="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-slate-50 active:bg-slate-100 text-slate-700">
+                    <div class="flex items-center space-x-3 text-xs font-semibold">
+                        <i class="fa-regular fa-file-lines text-base text-blue-600 w-5 text-center"></i>
+                        <span>자료입력</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                </button>
+                <button onclick="navTo('query')" class="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-slate-50 active:bg-slate-100 text-slate-700">
+                    <div class="flex items-center space-x-3 text-xs font-semibold">
+                        <i class="fa-solid fa-magnifying-glass text-base text-slate-600 w-5 text-center"></i>
+                        <span>자료조회</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                </button>
+                <button onclick="navTo('chart')" class="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-slate-50 active:bg-slate-100 text-slate-700">
+                    <div class="flex items-center space-x-3 text-xs font-semibold">
+                        <i class="fa-solid fa-chart-line text-base text-indigo-600 w-5 text-center"></i>
+                        <span>통계차트</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                </button>
+                <button onclick="navTo('calendar')" class="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-slate-50 active:bg-slate-100 text-slate-700">
+                    <div class="flex items-center space-x-3 text-xs font-semibold">
+                        <i class="fa-regular fa-calendar text-base text-emerald-600 w-5 text-center"></i>
+                        <span>영업달력</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                </button>
+            </div>
+
+            <!-- 하단 닫기 -->
+            <div class="p-3 border-t border-slate-100 text-center">
+                <button onclick="closeSidebar()" class="text-xs text-slate-500 font-bold py-1 px-4 hover:text-slate-800">
+                    닫기
+                </button>
+            </div>
+        </aside>
+
+        <!-- Bottom Navigation Bar for Mobile Convenience -->
+        <nav class="fixed bottom-0 max-w-md w-full bg-white border-t border-slate-200 z-10 flex justify-around py-1.5 shadow-lg">
+            <button onclick="switchTab('dashboard')" id="bNavHome" class="flex flex-col items-center justify-center text-[#0d4b75] flex-1 py-1">
+                <i class="fa-solid fa-house text-base"></i>
+                <span class="text-[10px] font-bold mt-0.5">홈</span>
+            </button>
+            <button onclick="openModal('entryModal')" class="flex flex-col items-center justify-center text-slate-500 hover:text-sky-700 flex-1 py-1">
+                <i class="fa-solid fa-circle-plus text-base text-sky-600"></i>
+                <span class="text-[10px] font-bold mt-0.5">입력</span>
+            </button>
+            <button onclick="switchTab('calendar')" id="bNavCal" class="flex flex-col items-center justify-center text-slate-500 hover:text-sky-700 flex-1 py-1">
+                <i class="fa-solid fa-calendar-days text-base"></i>
+                <span class="text-[10px] font-bold mt-0.5">달력</span>
+            </button>
+            <button onclick="switchTab('query')" id="bNavList" class="flex flex-col items-center justify-center text-slate-500 hover:text-sky-700 flex-1 py-1">
+                <i class="fa-solid fa-clipboard-list text-base"></i>
+                <span class="text-[10px] font-bold mt-0.5">내역</span>
+            </button>
+            <button onclick="switchTab('chart')" id="bNavStat" class="flex flex-col items-center justify-center text-slate-500 hover:text-sky-700 flex-1 py-1">
+                <i class="fa-solid fa-chart-pie text-base"></i>
+                <span class="text-[10px] font-bold mt-0.5">통계</span>
+            </button>
+        </nav>
+
+        <!-- MODAL: 자료입력 (화면 3, 4 기반 구현) -->
+        <div id="entryModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 hidden">
+            <div class="bg-white w-full max-w-sm rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fadeIn">
+                <!-- Modal Header -->
+                <div class="header-bg text-white h-12 flex items-center justify-between px-4">
+                    <button onclick="closeModal('entryModal')" class="p-1 hover:opacity-80">
+                        <i class="fa-solid fa-arrow-left text-base"></i>
+                    </button>
+                    <span class="font-bold text-base">자료입력</span>
+                    <button onclick="saveEntryForm()" class="p-1 hover:opacity-80 text-lg">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body Form -->
+                <div class="p-4 overflow-y-auto space-y-3.5 text-xs">
+                    <!-- 날짜 표시 -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">운행 일자</label>
+                        <input type="date" id="inputDate" class="w-full border rounded-lg p-2 font-bold text-slate-800 text-sm focus:ring-1 focus:ring-sky-600 outline-none">
+                    </div>
+
+                    <!-- 근무방식 선택 (커스텀 팝업 트리거) -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">근무방식</label>
+                        <button type="button" onclick="openPicker('shift')" class="w-full flex items-center justify-between p-2.5 bg-slate-100 hover:bg-slate-200 border rounded-lg font-bold text-slate-800 text-sm">
+                            <span id="selectedShiftText">일차</span>
+                            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- 근무조건 선택 (커스텀 팝업 트리거) -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">근무조건</label>
+                        <button type="button" onclick="openPicker('condition')" class="w-full flex items-center justify-between p-2.5 bg-slate-100 hover:bg-slate-200 border rounded-lg font-bold text-slate-800 text-sm">
+                            <span id="selectedConditionText">정근</span>
+                            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- 사납금 기준 표시 및 수정 -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">당일 사납금 기준 (원)</label>
+                        <input type="number" id="inputTargetAmount" class="w-full border rounded-lg p-2 font-bold text-slate-800 text-sm outline-none focus:ring-1 focus:ring-sky-600" value="212000">
+                    </div>
+
+                    <!-- 카드입금액 입력 -->
+                    <div>
+                        <label class="block font-bold text-blue-700 mb-1">카드입금액 (원)</label>
+                        <input type="number" id="inputCardAmount" placeholder="0" class="w-full border border-blue-300 rounded-lg p-2 font-bold text-blue-900 text-sm outline-none focus:ring-1 focus:ring-blue-600">
+                    </div>
+
+                    <!-- 현금입금액 입력 -->
+                    <div>
+                        <label class="block font-bold text-red-700 mb-1">현금입금액 (원)</label>
+                        <input type="number" id="inputCashAmount" placeholder="0" class="w-full border border-red-300 rounded-lg p-2 font-bold text-red-900 text-sm outline-none focus:ring-1 focus:ring-red-600">
+                    </div>
+
+                    <!-- 메모 입력 -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">비고 / 메모</label>
+                        <input type="text" id="inputNote" placeholder="특이사항 입력 (예: 우천, 차량점검)" class="w-full border rounded-lg p-2 text-xs outline-none focus:ring-1 focus:ring-sky-600">
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="p-3 border-t bg-slate-50 flex space-x-2">
+                    <button onclick="closeModal('entryModal')" class="flex-1 py-2 text-slate-600 font-bold border rounded-lg hover:bg-slate-100">
+                        취소
+                    </button>
+                    <button onclick="saveEntryForm()" class="flex-1 py-2 bg-[#0d4b75] text-white font-bold rounded-lg shadow hover:bg-[#0b3d5e]">
+                        저장하기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- POPUP: 근무방식 선택 팝업 (이미지 3 완벽 구현) -->
+        <div id="pickerShiftModal" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 hidden">
+            <div class="bg-white w-full max-w-xs rounded-lg overflow-hidden shadow-2xl">
+                <div class="header-bg text-white py-3 px-4 text-center font-bold text-base">
+                    근무방식 선택
+                </div>
+                <div class="divide-y divide-slate-100 text-center font-bold text-slate-800 text-sm">
+                    <button type="button" onclick="selectShiftOption('주간')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">주간</button>
+                    <button type="button" onclick="selectShiftOption('야간')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">야간</button>
+                    <button type="button" onclick="selectShiftOption('일차')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">일차</button>
+                    <button type="button" onclick="selectShiftOption('격일')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">격일</button>
+                    <button type="button" onclick="selectShiftOption('도급')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">도급</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- POPUP: 근무조건 선택 팝업 (이미지 4 완벽 구현) -->
+        <div id="pickerConditionModal" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 hidden">
+            <div class="bg-white w-full max-w-xs rounded-lg overflow-hidden shadow-2xl">
+                <div class="header-bg text-white py-3 px-4 text-center font-bold text-base">
+                    근무조건 선택
+                </div>
+                <div class="divide-y divide-slate-100 text-center font-bold text-slate-800 text-sm max-h-72 overflow-y-auto">
+                    <button type="button" onclick="selectConditionOption('정근')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">정근</button>
+                    <button type="button" onclick="selectConditionOption('휴일근무')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">휴일근무</button>
+                    <button type="button" onclick="selectConditionOption('휴무')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">휴무</button>
+                    <button type="button" onclick="selectConditionOption('연차')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">연차</button>
+                    <button type="button" onclick="selectConditionOption('결근')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">결근</button>
+                    <button type="button" onclick="selectConditionOption('대체')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">대체</button>
+                    <button type="button" onclick="selectConditionOption('인정휴가')" class="w-full py-3 hover:bg-slate-100 active:bg-sky-50">인정휴가</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOAST MESSAGE BOX -->
+        <div id="toastBox" class="fixed bottom-16 left-1/2 transform -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-lg pointer-events-none opacity-0 transition-opacity duration-300 z-50">
+            알림 메시지
+        </div>
+
+    </div>
+
+    <!-- Application Logic Script -->
+    <script>
+        // 기본 앱 설정 상태 (In-Memory State)
+        const appState = {
+            currentYear: 2026,
+            currentMonth: 10,
+            settings: {
+                targetMonthly: 5512000,
+                dailyRate: 212000,
+                fullWorkDays: 26,
+                defaultShift: '일차'
+            },
+            // 이미지 1, 5의 데이터를 기초 데이터로 탑재
+            records: [
+                { id: '1', date: '2026-10-03', shift: '일차', condition: '정근', target: 212000, card: 166000, cash: 0, extra: 46000, note: '' },
+                { id: '2', date: '2026-10-04', shift: '일차', condition: '정근', target: 212000, card: 213100, cash: 0, extra: 1100, note: '' },
+                { id: '3', date: '2026-10-06', shift: '일차', condition: '정근', target: 212000, card: 117600, cash: 0, extra: 94400, note: '' },
+                { id: '4', date: '2026-10-09', shift: '일차', condition: '정근', target: 212000, card: 216200, cash: 0, extra: 4200, note: '' },
+                { id: '5', date: '2026-10-11', shift: '일차', condition: '정근', target: 212000, card: 316900, cash: 0, extra: 104900, note: '' },
+                { id: '6', date: '2026-10-14', shift: '일차', condition: '정근', target: 212000, card: 301900, cash: 0, extra: 89900, note: '' },
+                { id: '7', date: '2026-10-15', shift: '일차', condition: '정근', target: 212000, card: 292700, cash: 0, extra: 80700, note: '' },
+                { id: '8', date: '2026-10-16', shift: '일차', condition: '정근', target: 212000, card: 309900, cash: 0, extra: 97900, note: '' },
+                { id: '9', date: '2026-10-18', shift: '일차', condition: '정근', target: 212000, card: 312500, cash: 0, extra: 100500, note: '' },
+                { id: '10', date: '2026-10-20', shift: '일차', condition: '정근', target: 212000, card: 301700, cash: 0, extra: 89700, note: '' },
+                { id: '11', date: '2026-10-21', shift: '일차', condition: '정근', target: 212000, card: 300800, cash: 0, extra: 88800, note: '' },
+                { id: '12', date: '2026-10-22', shift: '일차', condition: '정근', target: 212000, card: 140900, cash: 0, extra: 71100, note: '' }
+            ]
+        };
+
+        // DOM 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            initApp();
+        });
+
+        function initApp() {
+            // 오늘 날짜 세팅 (기본 2026-10-23)
+            const todayStr = '2026-10-23';
+            const dateInput = document.getElementById('inputDate');
+            if (dateInput) dateInput.value = todayStr;
+
+            updateAllViews();
+        }
+
+        // 숫자 천단위 포맷 함수
+        function formatWon(num) {
+            return (num || 0).toLocaleString('ko-KR') + '원';
+        }
+
+        function formatNum(num) {
+            return (num || 0).toLocaleString('ko-KR');
+        }
+
+        // 전체 화면 및 계산값 갱신
+        function updateAllViews() {
+            const records = appState.records;
+            const targetMonthly = appState.settings.targetMonthly;
+
+            // 총 입금액 합산 (카드 + 현금)
+            const totalCard = records.reduce((sum, r) => sum + (Number(r.card) || 0), 0);
+            const totalCash = records.reduce((sum, r) => sum + (Number(r.cash) || 0), 0);
+            const totalDeposit = totalCard + totalCash;
+
+            // 추가입금 합산 (초과 수입)
+            const totalExtra = records.reduce((sum, r) => sum + (Number(r.extra) || 0), 0);
+
+            // 미수금 계산 = 월 사납금 - 총 입금액
+            const unpaid = Math.max(0, targetMonthly - totalDeposit);
+
+            // 근무 일수 (정근 기준)
+            const normalDays = records.filter(r => r.condition === '정근').length;
+
+            // 메인 대시보드 반영
+            document.getElementById('cardMonthlyUnpaid').innerText = formatWon(unpaid);
+            document.getElementById('cardTargetDeposit').innerText = formatWon(targetMonthly);
+            document.getElementById('cardActualDeposit').innerText = formatWon(totalDeposit);
+            document.getElementById('cardTotalWorkDays').innerText = `${appState.settings.fullWorkDays}일`;
+
+            document.getElementById('cardExtraDeposit').innerText = formatWon(totalExtra);
+            document.getElementById('cardCashDeposit').innerText = formatWon(totalCash);
+            document.getElementById('cardCardDeposit').innerText = formatWon(totalCard);
+            document.getElementById('cardNormalWorkDays').innerText = `${normalDays}일`;
+
+            // 근무현황 영역
+            document.getElementById('statusNormalCount').innerText = `${normalDays}일`;
+            document.getElementById('statusIlchaCount').innerText = `${normalDays}일`;
+
+            // 통계 탭 수치 갱신
+            document.getElementById('statUnpaid').innerText = formatWon(unpaid);
+            document.getElementById('statCard').innerText = formatWon(totalCard);
+            document.getElementById('statTarget').innerText = formatWon(targetMonthly);
+            document.getElementById('statExtra').innerText = formatWon(totalExtra);
+            document.getElementById('statNormalDays').innerText = `${normalDays}일`;
+
+            const achieveRate = ((totalDeposit / targetMonthly) * 100).toFixed(1);
+            document.getElementById('statRateText').innerText = `${achieveRate}%`;
+            document.getElementById('statProgressBar').style.width = `${Math.min(100, achieveRate)}%`;
+
+            // 리스트 및 달력 갱신
+            renderRecentRecords();
+            renderFullRecords();
+            renderCalendar();
+        }
+
+        // 최근 기록 대시보드 렌더링
+        function renderRecentRecords() {
+            const listEl = document.getElementById('recentRecordsList');
+            listEl.innerHTML = '';
+
+            const sorted = [...appState.records].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+            if (sorted.length === 0) {
+                listEl.innerHTML = '<div class="text-slate-400 py-2 text-center">등록된 내역이 없습니다.</div>';
+                return;
+            }
+
+            sorted.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center bg-white p-2 rounded border border-slate-200';
+                row.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-slate-800">${item.date.slice(5)}</span>
+                        <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-semibold">${item.shift} / ${item.condition}</span>
+                    </div>
+                    <div class="font-bold text-blue-700">${formatWon(item.card + item.cash)}</div>
+                `;
+                listEl.appendChild(row);
+            });
+        }
+
+        // 전체 기록 리스트 렌더링 (자료조회)
+        function renderFullRecords() {
+            const listEl = document.getElementById('recordsListFull');
+            const countBadge = document.getElementById('queryCountBadge');
+            listEl.innerHTML = '';
+            countBadge.innerText = `총 ${appState.records.length}건`;
+
+            const sorted = [...appState.records].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sorted.forEach(item => {
+                const total = item.card + item.cash;
+                const card = document.createElement('div');
+                card.className = 'bg-white border rounded-lg p-2.5 shadow-xs flex items-center justify-between';
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-sm text-slate-800">${item.date}</span>
+                            <span class="text-[10px] bg-sky-100 text-sky-800 px-1.5 py-0.5 rounded font-bold">${item.shift}</span>
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">${item.condition}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 mt-1 space-x-2">
+                            <span>카드: <b class="text-slate-700">${formatWon(item.card)}</b></span>
+                            <span>현금: <b class="text-slate-700">${formatWon(item.cash)}</b></span>
+                            ${item.extra ? `<span class="text-blue-600 font-semibold">초과: ${formatWon(item.extra)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-extrabold text-sm text-[#0d4b75]">${formatWon(total)}</div>
+                        <button onclick="deleteRecord('${item.id}')" class="text-rose-500 hover:text-rose-700 text-[11px] mt-1">삭제</button>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        // 영업달력 렌더링 (이미지 5 형태 구현)
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            const year = appState.currentYear;
+            const month = appState.currentMonth; // 1-12
+            document.getElementById('calYearMonth').innerText = `${year}. ${String(month).padStart(2, '0')}.`;
+
+            // 당월 1일 정보
+            const firstDay = new Date(year, month - 1, 1);
+            const startDayOfWeek = firstDay.getDay(); // 0(일) ~ 6(토)
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            // 이전 달 날짜 수
+            const prevDaysInMonth = new Date(year, month - 1, 0).getDate();
+
+            // 이전 달 셀 채우기
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const dayNum = prevDaysInMonth - i;
+                const cell = createCalCell(dayNum, true, false);
+                grid.appendChild(cell);
+            }
+
+            // 이번 달 셀 채우기
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const record = appState.records.find(r => r.date === dayStr);
+                const isSelectedDay = (d === 23); // 이미지 5의 23일 선택 하이라이트 반영
+
+                const cell = createCalCell(d, false, isSelectedDay, record, (startDayOfWeek + d - 1) % 7);
+                grid.appendChild(cell);
+            }
+
+            // 다음 달 잔여 셀 채우기
+            const totalCells = startDayOfWeek + daysInMonth;
+            const remaining = (7 - (totalCells % 7)) % 7;
+            for (let next = 1; next <= remaining; next++) {
+                const cell = createCalCell(next, true, false);
+                grid.appendChild(cell);
+            }
+        }
+
+        // 달력 개별 셀 생성 도우미
+        function createCalCell(dayNum, isOtherMonth, isSelected, record = null, dayOfWeek = 0) {
+            const cell = document.createElement('div');
+            // 이미지 5의 스타일: 연하늘색 배경 셀들, 23일은 연두색 강조
+            let bgClass = 'bg-white';
+            if (record && !isOtherMonth) {
+                bgClass = 'bg-[#d8effd]'; // 이미지 5의 연한 하늘색 배경
+            }
+            if (isSelected) {
+                bgClass = 'bg-[#dff3df] border-2 border-emerald-500'; // 23일 선택 테두리
+            }
+
+            cell.className = `border-t border-l border-slate-200 min-h-[58px] p-1 flex flex-col justify-between text-left cursor-pointer transition-colors ${bgClass}`;
+
+            // 날짜 색상
+            let dayColor = 'text-slate-800';
+            if (isOtherMonth) dayColor = 'text-slate-300';
+            else if (dayOfWeek === 0) dayColor = 'text-red-500';
+            else if (dayOfWeek === 6) dayColor = 'text-blue-600';
+
+            // 상단 날짜 숫자
+            let topHtml = `<span class="text-xs font-bold ${dayColor}">${dayNum}</span>`;
+
+            // 하단 데이터 표시 (이미지 5 기준: 상단에 입금액, 하단에 추가입금액)
+            let bottomHtml = '';
+            if (record && !isOtherMonth) {
+                bottomHtml = `
+                    <div class="text-[10px] leading-tight text-right">
+                        <div class="text-amber-700 font-bold">${formatNum(record.card + record.cash)}</div>
+                        <div class="text-sky-700 font-semibold">${formatNum(record.extra)}</div>
+                    </div>
+                `;
+            }
+
+            cell.innerHTML = topHtml + bottomHtml;
+            return cell;
+        }
+
+        // 달력 월 변경
+        function changeCalMonth(delta) {
+            appState.currentMonth += delta;
+            if (appState.currentMonth > 12) {
+                appState.currentMonth = 1;
+                appState.currentYear += 1;
+            } else if (appState.currentMonth < 1) {
+                appState.currentMonth = 12;
+                appState.currentYear -= 1;
+            }
+            document.getElementById('headerTitle').innerText = `${appState.currentYear}년 ${appState.currentMonth}월`;
+            renderCalendar();
+        }
+
+        // 탭 전환 네비게이션
+        function switchTab(tabName) {
+            const tabs = ['dashboard', 'query', 'chart', 'calendar', 'settings'];
+            tabs.forEach(t => {
+                const el = document.getElementById('view' + capitalize(t));
+                if (el) el.classList.add('hidden');
+            });
+
+            const activeTab = document.getElementById('view' + capitalize(tabName));
+            if (activeTab) activeTab.classList.remove('hidden');
+
+            // Bottom Nav 스타일 동기화
+            const navMap = { dashboard: 'bNavHome', calendar: 'bNavCal', query: 'bNavList', chart: 'bNavStat' };
+            ['bNavHome', 'bNavCal', 'bNavList', 'bNavStat'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('text-[#0d4b75]');
+                    btn.classList.add('text-slate-500');
+                }
+            });
+            if (navMap[tabName]) {
+                const currentBtn = document.getElementById(navMap[tabName]);
+                if (currentBtn) {
+                    currentBtn.classList.add('text-[#0d4b75]');
+                    currentBtn.classList.remove('text-slate-500');
+                }
+            }
+
+            // 헤더 타이틀 업데이트
+            const titleEl = document.getElementById('headerTitle');
+            if (tabName === 'calendar') {
+                titleEl.innerText = '영업달력';
+            } else if (tabName === 'query') {
+                titleEl.innerText = '자료조회';
+            } else if (tabName === 'chart') {
+                titleEl.innerText = '통계분석';
+            } else if (tabName === 'settings') {
+                titleEl.innerText = '입금 기본정보';
+            } else {
+                titleEl.innerText = `${appState.currentYear}년 ${appState.currentMonth}월`;
+            }
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // 사이드바 제어
+        function openSidebar() {
+            document.getElementById('sidebarOverlay').classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('sidebar').classList.remove('-translate-x-full');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebarOverlay').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+        }
+
+        function navTo(target) {
+            closeSidebar();
+            if (target === 'entryModal') {
+                openModal('entryModal');
+            } else {
+                switchTab(target);
+            }
+        }
+
+        // 모달 열기/닫기
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // 커스텀 선택 팝업 (근무방식 / 근무조건)
+        function openPicker(type) {
+            if (type === 'shift') {
+                document.getElementById('pickerShiftModal').classList.remove('hidden');
+            } else if (type === 'condition') {
+                document.getElementById('pickerConditionModal').classList.remove('hidden');
+            }
+        }
+
+        function selectShiftOption(value) {
+            document.getElementById('selectedShiftText').innerText = value;
+            document.getElementById('pickerShiftModal').classList.add('hidden');
+        }
+
+        function selectConditionOption(value) {
+            document.getElementById('selectedConditionText').innerText = value;
+            document.getElementById('pickerConditionModal').classList.add('hidden');
+        }
+
+        // 입력 폼 저장 핸들러
+        function saveEntryForm() {
+            const date = document.getElementById('inputDate').value;
+            const shift = document.getElementById('selectedShiftText').innerText;
+            const condition = document.getElementById('selectedConditionText').innerText;
+            const target = Number(document.getElementById('inputTargetAmount').value) || 0;
+            const card = Number(document.getElementById('inputCardAmount').value) || 0;
+            const cash = Number(document.getElementById('inputCashAmount').value) || 0;
+            const note = document.getElementById('inputNote').value.trim();
+
+            if (!date) {
+                showToast('운행 일자를 선택해주세요.');
+                return;
+            }
+
+            const total = card + cash;
+            const extra = Math.max(0, total - target);
+
+            // 기존 동일 날짜 확인 후 업데이트 또는 추가
+            const existingIndex = appState.records.findIndex(r => r.date === date);
+            const newRecord = {
+                id: existingIndex >= 0 ? appState.records[existingIndex].id : Date.now().toString(),
+                date,
+                shift,
+                condition,
+                target,
+                card,
+                cash,
+                extra,
+                note
+            };
+
+            if (existingIndex >= 0) {
+                appState.records[existingIndex] = newRecord;
+                showToast(`${date} 기록이 수정되었습니다.`);
+            } else {
+                appState.records.push(newRecord);
+                showToast('자료가 성공적으로 저장되었습니다.');
+            }
+
+            // 폼 리셋 및 모달 닫기
+            document.getElementById('inputCardAmount').value = '';
+            document.getElementById('inputCashAmount').value = '';
+            document.getElementById('inputNote').value = '';
+            closeModal('entryModal');
+
+            updateAllViews();
+        }
+
+        // 내역 삭제
+        function deleteRecord(id) {
+            appState.records = appState.records.filter(r => r.id !== id);
+            showToast('내역이 삭제되었습니다.');
+            updateAllViews();
+        }
+
+        // 기본 설정 저장
+        function saveSettings() {
+            appState.settings.targetMonthly = Number(document.getElementById('cfgTargetMonthly').value) || 5512000;
+            appState.settings.dailyRate = Number(document.getElementById('cfgDailyRate').value) || 212000;
+            appState.settings.fullWorkDays = Number(document.getElementById('cfgWorkDays').value) || 26;
+            appState.settings.defaultShift = document.getElementById('cfgDefaultShift').value;
+
+            showToast('입금 기본정보가 저장되었습니다.');
+            switchTab('dashboard');
+        }
+
+        // 토스트 알림창
+        function showToast(msg) {
+            const toast = document.getElementById('toastBox');
+            toast.innerText = msg;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2300);
+        }
+    </script>
+</body>
+</html>
